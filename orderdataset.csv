@@ -1,4 +1,4 @@
-ID,ORDER,StockCode,Name,Quantity,InvoiceDate,UnitPrice,CustomerID,Country
+id,ordernumber,stock,productdescription,quantity,date,price,userid,country
 1109,536527,22809,SET OF 6 T-LIGHTS SANTA,6,2010-12-01 13:04:00,2.95,12662.0,Germany
 1110,536527,84347,ROTATING SILVER ANGELS T-LIGHT HLDR,6,2010-12-01 13:04:00,2.55,12662.0,Germany
 1111,536527,84945,MULTI COLOUR SILVER T-LIGHT HOLDER,12,2010-12-01 13:04:00,0.85,12662.0,Germany

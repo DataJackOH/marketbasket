@@ -1,1 +1,1 @@
-web: gunicorn mba_data.py
+web: gunicorn mba_data:marketbasket2021

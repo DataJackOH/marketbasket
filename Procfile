@@ -1,1 +1,1 @@
-web: gunicorn mba_data:marketbasket2021 --preload
+web: sh setup.sh && streamlit run mba_data.py

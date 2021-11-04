@@ -14,28 +14,9 @@ import networkx as nx
 from pyvis.network import Network
 import pathlib
 
-
-# An alias for our state
-state = st.session_state
-
-
-# A function to easily go from one step to another
-def change_step(next_step):
-    state.step = next_step
-
-
-# Let's initialize our session state
-if "data" not in state:
-    state.data = []
-    state.step = "init"
-
 # Page config
 st.set_page_config(page_title="Market Basket Analysis", layout="wide")
 
-
-# Step 1
-if state.step == "init":
-    st.button("Load data", on_click=change_step, args=["load"])
 
 
 uploaded_file = st.sidebar.file_uploader('Upload a file with some order data', type=['csv','xlsx'])
@@ -44,18 +25,49 @@ demo = st.sidebar.checkbox('Use demo data')
 
 
 
+st.title('Market Basket Analysis 🛒 ')
 
 ## add in context
 
 
 # Info
-with st.beta_expander("What is market basket analysis?", expanded=False):
-    st.write('Market basket analysis is useful for finding hidden associations between orders.')
-    st.write("The key metrics are lift and confidence. Lift is a measure of")
+with st.expander("What is market basket analysis?", expanded=False):
+    st.write("""Market basket analysis is an algorithim which finds items that are commonly purchased together.
+                
+This information can then be used to cross/upsell.
+                
+The typical story is Walmart ran this and found a hidden, strong association between Beer and Nappies. 
+
+They put Beer and Nappies on a cross-promotion and made a killing! 🍺 🍼""")
 
 
-    
+with st.expander("How do I use this tool?", expanded=False): 
+    st.write("""You have 2 options to upload data:""")
+    st.write(""" 
+    -   Upload a CSV/xslx of your own **Customer order data** via the sidebar.
+        - Your file must contain at least three columns:
+            -   A 'Product Description' column
+            -   An 'Order Number' or common ID column that's shared across different products within the same order.
+            -   A 'Quantity' column, showing how many of that product was purchased in the order.""")
 
+    st.write("""
+
+
+    - Use the 'Demo' order data.
+        - Open the sidebar and tick 'Use demo data'
+    """)
+    st.write("""
+    - You can **download** the analysis once it's finished, with the "Download data as csv" button
+    """)
+               
+
+
+with st.expander("What does the table mean?", expanded=False): 
+  st.write("""
+    -   The key metrics are **Lift** and **Confidence**:
+        -   **Lift** is a measure of how frequently your items occur together in baskets. 
+            -   Where 1 is completely random, <1 is negative (or less likely than random) and >1 is a positive association (more likely than random). 
+        -   **Confidence** is directional, and is the percent of transactions of product_A which also include product_B.""")
 
 if uploaded_file is not None:
 #read csv
@@ -66,20 +78,12 @@ if uploaded_file is not None:
 elif demo:
     df = pd.read_csv('https://raw.githubusercontent.com/DataJackOH/marketbasket/main/orderdataset.csv')
 else:
-    st.title('Market Basket Analysis')
-    st.header("""First, upload some data via the sidebar.""" )
-    st.header("""This should be a csv or xslx file with one row per order.""")
-    st.header("""The only fields you need are 
-    1. Item Description
-    2. Quantity
-    3. A common Order/InvoiceID""")
     st.stop()
     
 
 # In[2]:
 
-st.title('Market Basket Analysis')
-st.header("Nice one! Now lets map your data to the columns we're expecting")
+st.subheader("Nice one! Now lets map your data to the columns we're expecting")
 
 st.subheader("""
 
@@ -87,7 +91,7 @@ st.subheader("""
 
 """)
 
-col1, col2, col3 = st.beta_columns(3)
+col1, col2, col3 = st.columns(3)
 with st.form(key='columns_in_form'):
         product_description = col1.selectbox('The column which contains your product description', df.columns)
         order_number = col2.selectbox('The column which contains your order/invoice number.', df.columns)
@@ -96,9 +100,10 @@ with st.form(key='columns_in_form'):
         submit_button = st.form_submit_button(label='Run the numbers!')
 
 
+
 if not submit_button:
     st.stop()
-st.success('Boom!')
+
 
 @st.cache
 def clean_up(df, description=product_description, orders=order_number):
@@ -107,14 +112,11 @@ def clean_up(df, description=product_description, orders=order_number):
     df[orders] = df[orders].astype('str')
     return df
 
-
+df = clean_up(df=df)
 
 # In[5]:
 
 
-df = clean_up(df=df)
-
- 
 
 # In[6]:
 
@@ -165,16 +167,26 @@ def associationcleanup(frequent_itemsets=frequent_itemsets):
     rules["product_a"] = rules["antecedents"].apply(lambda x: ', '.join(list(x))).astype("unicode")
     rules["product_b"] = rules["consequents"].apply(lambda x: ', '.join(list(x))).astype("unicode")
     rules["antecedent_len"] = rules["antecedents"].apply(lambda x: len(x))
-    rules = rules[['product_a','product_b','support','confidence','lift','antecedent_len']]
+    rules["consequent_len"] = rules["antecedents"].apply(lambda x: len(x))
+    rules = rules[rules['antecedent_len'] == 1]
+    rules = rules[rules['consequent_len'] == 1]
+    rules = rules[['product_a','product_b','support','confidence','lift']]
+    rules = rules.sort_values(by='lift', ascending=False)
     frequent_itemsets = None
     return rules 
-    
-rules = associationcleanup(frequent_itemsets)
 
+
+
+try: 
+    rules = associationcleanup(frequent_itemsets)
+    st.dataframe(rules)
+except:
+        st.error('Please enter a valid input')
+        st.stop()
+    
+st.success("""Boom! - your data has been sorted so the top associations (**greatest lift**) appear first.""")
 
 # In[12]:
-st.dataframe(rules)
-
 
 @st.cache
 def convert_df(df):
